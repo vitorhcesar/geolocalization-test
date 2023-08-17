@@ -1,14 +1,16 @@
 'use client'
 import { useEffect, useState } from 'react';
-import { MapContainer, TileLayer, useMap, Marker, Popup } from 'react-leaflet';
+import { MapContainer, TileLayer, useMapEvents, Marker, Popup } from 'react-leaflet';
 import Button from './button';
 import axios from 'axios';
 
 export default function Map()  {
     const [ origin, setOrigin ] = useState([51.505, -0.09]);
-    const [ adress, setAdress ] = useState('Brazil, Rio de Janeiro, Rua Artur Vargas');
+    const [ adress, setAdress ] = useState({
+        display_name: 'Sem endereços...'
+    });
 
-    async function getGeoAdress () {
+    const getGeoAdress = async () => {
         await axios(`https://nominatim.openstreetmap.org/reverse?lat=${origin[0]}&lon=${origin[1]}`, {
             params: {
                 format: 'json'
@@ -23,7 +25,6 @@ export default function Map()  {
     }
 
     const getAdress = () => {
-        // setAdress(prompt('Digite um endereço.'));
         if ('geolocation' in navigator) {
             navigator.geolocation.getCurrentPosition(position => {
                 setOrigin([position.coords.latitude, position.coords.longitude]);
@@ -34,63 +35,18 @@ export default function Map()  {
     }
 
     useEffect(() => {
-        // async function fun () {
-        //     try {
-        //         const response = await fetch('/api/geo', {
-        //             method: 'POST',
-        //             headers: {
-        //                 'Content-Type': 'application/json'
-        //             },
-        //             body: JSON.stringify({
-        //                 adress: adress
-        //             }) // Precisa ser em JSON
-        //         });
-        //         const readStream = response.body;
-                
-        //         console.log(readStream);
-                
-        //         const reader = readStream.getReader();
-        //         const chunks = [];
-                
-        //         while (true) {
-        //             const { done, value } = await reader.read();
-        //             if (done) break;
-        //             chunks.push(value);
-        //         }
-                
-        //         const concatenatedBuffer = new Uint8Array(
-        //             chunks.reduce((acc, chunk) => acc + chunk.length, 0)
-        //         );
-        //         let offset = 0;
-        
-        //         for (const chunk of chunks) {
-        //             concatenatedBuffer.set(chunk, offset);
-        //             offset += chunk.length;
-        //         }
-
-        //         console.log(concatenatedBuffer);
-
-        //         const decoder = new TextDecoder('utf-8');
-
-        //         const newBuffer = decoder.decode(concatenatedBuffer);
-        //         console.log('JSON: ', newBuffer);
-        //         console.log('new: ', JSON.parse(newBuffer));
-
-        //         setOrigin(JSON.parse(newBuffer).data.latLong)
-        //     } catch (err) {
-        //         console.error(err);
-        //     }
-        // }
-
-        // fun();
+        // callAPI('get');
+        // callAPI('post');
         getGeoAdress();
     }, [origin]);
 
     return (
         <div className='flex items-center h-full flex-col justify-center'>
-            <p className='bg-slate-600 text-slate-100 w-[300px] mb-[20px]'>Endereço: {adress.display_name}</p>
+            <p className='bg-slate-600 text-slate-100 w-[300px] mb-[20px] p-3 rounded-xl'>
+                <b>Endereço:</b> <br/> <span className='text-[.8rem] text-orange-100'>{adress.display_name}</span></p>
             <Button event={getAdress} /> 
-            <MapContainer style={{ height: 400, width: 400 }} center={origin} zoom={13} scrollWheelZoom={false}>
+            <MapContainer fadeAnimation={true} style={{ height: 400, width: 400 }} center={origin} zoom={13} scrollWheelZoom={false}>
+                <MapComponent coord={origin} />
                 <TileLayer
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -103,4 +59,51 @@ export default function Map()  {
             </MapContainer>
         </div>
     );
+}
+
+function MapComponent ({ coord }) {
+    const button = document.getElementById('button-id');
+    
+    const map = useMapEvents({
+        click: () => {
+            map.setView([coord[0], coord[1]], map.getZoom())
+        },
+        locationfound: (location) => {
+            console.log('location found: ', location);
+        }
+    });
+
+    return null;
+}
+
+const callAPI = async (method) => {
+    const body = {
+        key: 'Dado passado pelo body da requisição'
+    }
+
+    if (method === 'get') {
+        await axios('/api')
+        .then(res => {
+            const data = res.data;
+            console.log('Chamada API GET:', data);
+        })
+        .catch(err => {
+            console.error(err);
+        })
+    } else if (method === 'post') {
+        await axios('/api', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            data: JSON.stringify({ key: 'Dado passado pelo body da requisição' })
+        })
+        .then(res => {
+            const data = res.data;
+            console.log('Chamada API POST:', data);
+        })
+        .catch(err => {
+            console.error('ERRO: ', err);
+        })
+    }
 }
