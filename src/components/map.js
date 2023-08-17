@@ -1,11 +1,26 @@
 'use client'
 import { useEffect, useState } from 'react';
-import { MapContainer, TileLayer, useMap, Marker, Popup } from 'react-leaflet'
+import { MapContainer, TileLayer, useMap, Marker, Popup } from 'react-leaflet';
 import Button from './button';
+import axios from 'axios';
 
 export default function Map()  {
     const [ origin, setOrigin ] = useState([51.505, -0.09]);
     const [ adress, setAdress ] = useState('Brazil, Rio de Janeiro, Rua Artur Vargas');
+
+    async function getGeoAdress () {
+        await axios(`https://nominatim.openstreetmap.org/reverse?lat=${origin[0]}&lon=${origin[1]}`, {
+            params: {
+                format: 'json'
+            }
+        })
+        .then(res => {
+            const data = res.data;
+            setAdress(data);
+
+            return data;
+        });
+    }
 
     const getAdress = () => {
         // setAdress(prompt('Digite um endereço.'));
@@ -68,11 +83,12 @@ export default function Map()  {
         // }
 
         // fun();
-    }, [adress]);
+        getGeoAdress();
+    }, [origin]);
 
     return (
         <div className='flex items-center h-full flex-col justify-center'>
-            <p></p>
+            <p className='bg-slate-600 text-slate-100 w-[300px] mb-[20px]'>Endereço: {adress.display_name}</p>
             <Button event={getAdress} /> 
             <MapContainer style={{ height: 400, width: 400 }} center={origin} zoom={13} scrollWheelZoom={false}>
                 <TileLayer
